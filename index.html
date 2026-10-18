@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Muse Watch Hub</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --card: #12161f;
+      --accent: #0064e0;
+      --accent-glow: #00d2ff;
+      --text: #ffffff;
+      --muted: #8a99ad;
+      --ok: #00e676;
+      --warn: #ffab00;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      /* Zona segura perimetral para bisel de Galaxy Watch */
+      padding: 10% 7% 16% 7%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      text-align: center;
+      overflow-x: hidden;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background-color: var(--ok);
+      box-shadow: 0 0 8px var(--ok);
+    }
+
+    .title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      background: linear-gradient(90deg, #ffffff, var(--accent-glow));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Barra de hardware para el reloj */
+    .hw-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .hw-btn {
+      background: var(--card);
+      border: 1px solid #263147;
+      color: var(--muted);
+      border-radius: 16px;
+      padding: 8px 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .hw-btn.active {
+      border-color: var(--ok);
+      color: var(--ok);
+      background: rgba(0, 230, 118, 0.12);
+    }
+
+    /* Boton principal de apertura de sesion Muse */
+    .launch-main {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent), #0095ff);
+      color: #fff;
+      border: none;
+      border-radius: 22px;
+      padding: 13px 10px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      box-shadow: 0 4px 14px rgba(0, 100, 224, 0.45);
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    .launch-main:active {
+      transform: scale(0.96);
+    }
+
+    .section-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin: 6px 0 6px 0;
+    }
+
+    /* Botones de 1-Toque (Copian comando y abren Muse) */
+    .prompt-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .prompt-btn {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid #1f293d;
+      border-left: 3px solid var(--accent-glow);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .prompt-btn:active {
+      background: #1c2538;
+      transform: scale(0.98);
+    }
+
+    .badge {
+      font-size: 0.65rem;
+      background: rgba(0, 210, 255, 0.15);
+      color: var(--accent-glow);
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-weight: 700;
+    }
+
+    /* Checklist rapido local en el reloj */
+    .task-box {
+      width: 100%;
+      background: var(--card);
+      border-radius: 14px;
+      padding: 8px;
+      border: 1px solid #1f293d;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 4px;
+      border-bottom: 1px solid #1b2230;
+      font-size: 0.76rem;
+    }
+
+    .task-item:last-child {
+      border-bottom: none;
+    }
+
+    .task-item.done span {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 8%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ok);
+      color: #000;
+      font-weight: 800;
+      font-size: 0.72rem;
+      padding: 6px 12px;
+      border-radius: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 99;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="status-dot"></div>
+    <div class="title">META MUSE WATCH</div>
+  </div>
+
+  <!-- Controles de Hardware para Reloj -->
+  <div class="hw-bar">
+    <button id="btnFull" class="hw-btn" onclick="toggleFull()">PANTALLA FULL</button>
+    <button id="btnWake" class="hw-btn" onclick="toggleWake()">MANTENER ON</button>
+  </div>
+
+  <!-- Apertura directa de la sesion logueada -->
+  <button class="launch-main" onclick="openMuseDirect()">
+    ABRIR SESIÓN MUSE
+  </button>
+
+  <div class="section-label">Seguimiento 1-Toque (Copia + Abre)</div>
+
+  <div class="prompt-grid">
+    <button class="prompt-btn" onclick="copyAndLaunch('Dame un resumen ultra breve (máximo 3 líneas para leer en mi reloj) del estado actual de la tarea que estamos ejecutando.')">
+      <span>Estado de tarea actual</span>
+      <span class="badge">GO</span>
+    </button>
+
+    <button class="prompt-btn" onclick="copyAndLaunch('Ya completé el paso actual. Indícame únicamente cuál es el siguiente paso inmediato o serie que me toca ejecutar.')">
+      <span>Siguiente paso / serie</span>
+      <span class="badge">GO</span>
+    </button>
+
+    <button class="prompt-btn" onclick="copyAndLaunch('Registra que terminé la sesión de hoy y muéstrame los puntos pendientes para mañana en formato lista corta.')">
+      <span>Cerrar y guardar avance</span>
+      <span class="badge">GO</span>
+    </button>
+  </div>
+
+  <div class="section-label">Control Rápido en Muñeca</div>
+  <div class="task-box" id="taskList"></div>
+
+  <div id="toast" class="toast">Comando copiado. Abriendo Muse...</div>
+
+  <script>
+    const MUSE_URL = "https://www.meta.ai/";
+    let wakeLock = null;
+
+    const defaultTasks = [
+      { id: 1, text: "Sesión iniciada en móvil", done: true },
+      { id: 2, text: "Paso 1 / Bloque principal", done: false },
+      { id: 3, text: "Paso 2 / Verificación", done: false }
+    ];
+
+    function vibrate(ms = 40) {
+      if (navigator.vibrate) navigator.vibrate(ms);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1800);
+    }
+
+    function toggleFull() {
+      vibrate(35);
+      const btn = document.getElementById('btnFull');
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+          btn.classList.add('active');
+        }).catch(() => {});
+      } else {
+        document.exitFullscreen();
+        btn.classList.remove('active');
+      }
+    }
+
+    async function toggleWake() {
+      vibrate(35);
+      const btn = document.getElementById('btnWake');
+      if ('wakeLock' in navigator) {
+        if (!wakeLock) {
+          try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            btn.classList.add('active');
+            showToast('Pantalla siempre activa');
+          } catch (e) {
+            showToast('Activa brillo en reloj');
+          }
+        } else {
+          wakeLock.release();
+          wakeLock = null;
+          btn.classList.remove('active');
+        }
+      } else {
+        showToast('WakeLock no soportado');
+      }
+    }
+
+    function openMuseDirect() {
+      vibrate(60);
+      window.location.href = MUSE_URL;
+    }
+
+    async function copyAndLaunch(promptText) {
+      vibrate([40, 50, 40]);
+      try {
+        await navigator.clipboard.writeText(promptText);
+        showToast('Copiado. Pega en Muse');
+      } catch (err) {
+        showToast('Abriendo Muse...');
+      }
+      setTimeout(() => {
+        window.location.href = MUSE_URL;
+      }, 650);
+    }
+
+    function loadTasks() {
+      const saved = JSON.parse(localStorage.getItem('muse_watch_tasks')) || defaultTasks;
+      const container = document.getElementById('taskList');
+      container.innerHTML = '';
+      saved.forEach((task, idx) => {
+        const row = document.createElement('div');
+        row.className = 'task-item' + (task.done ? ' done' : '');
+        row.onclick = () => toggleTask(idx);
+        row.innerHTML = `
+          <span>${task.text}</span>
+          <strong>${task.done ? '✓' : '○'}</strong>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function toggleTask(index) {
+      vibrate(30);
+      const saved = JSON.parse(localStorage.getItem('muse_watch_tasks')) || defaultTasks;
+      saved[index].done = !saved[index].done;
+      localStorage.setItem('muse_watch_tasks', JSON.stringify(saved));
+      loadTasks();
+    }
+
+    loadTasks();
+  </script>
+</body>
+</html>
